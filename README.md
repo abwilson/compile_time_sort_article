@@ -1,5 +1,3 @@
-# compile_time_sort_article
-
 # Non-Recursive Compile Time Sort
 
 There was a time when compile time sorting was a holy grail for
@@ -27,6 +25,8 @@ generalise such things as comparison function - for now <, or the type
 of thing being sorted - for now just any integral types.
 The best way to explain is to walk through the code so without further
 ado, here goes.
+
+## The Code
 
 Need these for index_sequence etc...
 
