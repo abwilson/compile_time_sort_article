@@ -169,3 +169,4 @@ instantiation the compiler will cash these intermediate values. I
 think it's actually n^2 but with lower overhead than recursive
 techniques which are likely to be n log(n).
 */
+int main(){}
