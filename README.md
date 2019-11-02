@@ -74,14 +74,17 @@ A sorted sequence is one where the positions of the elements correspond to the r
         return std::integer_sequence<Int, ith<index>()...>{};
     }
 ```
-The ith element is the value who's rank is i. We can find this by looking at all the values and picking out the one with the
-       correct rank. We have to be a little bit careful
-       though. Repeated values will lead to ties in ranking. eg for
-       the sequence [1, 2, 2, 3] the ranks are 1st, 2nd, 2nd, 4th. We
-       can compensate for this by taking into account the count of
-       each value. Here I'm using a side effect within the pack
-       expansion to capture the result.
-    */
+
+The ith element is the value who's rank is i. We can find this by
+looking at all the values and picking out the one with the correct
+rank. We have to be a little bit careful though. Repeated values will
+lead to ties in ranking. eg for the sequence [1, 2, 2, 3] the ranks
+are 1st, 2nd, 2nd, 4th. We can compensate for this by taking into
+account the count of each value. Here I'm using a side effect within
+the pack expansion to capture the result.
+
+
+```
     template<std::size_t i>
     static constexpr auto ith()
     {
@@ -91,34 +94,32 @@ The ith element is the value who's rank is i. We can find this by looking at all
              result = values : Int{}),...);
         return result;
     }
+```    
 
-    /**
-       We can define the rank of an element by counting the number of
-       other elements of lesser value. Note if you we going to
-       generalise the ordering function this is where you would do it.
-    */
+We can define the rank of an element by counting the number of
+other elements of lesser value. Note if you we going to
+generalise the ordering function this is where you would do it.
+
+```
     template<Int x>
     static constexpr auto rankOf() { return ((x > values) +...); }
-    
-    /**
-       The count is similar.
-    */
+```    
+The count is similar.
+```
     template<Int x>
     static constexpr auto count() { return ((x == values) +...); }
 };
-
-/**
+```
 To show that it works I'm defining equality for integer_sequences. Two
 sequences with the same values are equal.
-*/
+```
 template<typename Int, Int... values>
 constexpr auto operator==(
     std::integer_sequence<Int, values...>, 
     std::integer_sequence<Int, values...>) { return true; }
-
-/**
+```
 Sequences with different values are unequal.
-*/
+```
 template<typename Int, Int... values, Int... others>
 constexpr auto operator==(
     std::integer_sequence<Int, values...>, 
@@ -128,22 +129,19 @@ static_assert(
     sort(std::index_sequence<3, 2, 1>{}) == std::index_sequence<1, 2, 3>{});
 static_assert(
     sort(std::index_sequence<3, 3, 1>{}) == std::index_sequence<1, 3, 3>{});
-
-/**
+```
 As an extra check this bit of code converts a sequence to an array.
-*/
+```
 template<typename Int, Int... values>
 constexpr auto toArray(std::integer_sequence<Int, values...>)
 {
     return std::array<Int, sizeof...(values)>{ values... };
 }
-
-/**
+```
 In godbolt we can see the emitted code is sorted.
-*/
+```
 auto x = toArray(sort(std::index_sequence<3, 2, 1, 9, 42>{}));
-
-/**
+```
 Is this better than the equivalent recursive definition? I think it's
 easier to understand and it's shorter. Is it quicker? Techniqcally it
 would be n^3 since for each element we're finding the ith which
@@ -152,4 +150,3 @@ each element. But since each of these calculations is a template
 instantiation the compiler will cash these intermediate values. I
 think it's actually n^2 but with lower overhead than recursive
 techniques which are likely to be n log(n).
-*/
