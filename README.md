@@ -29,45 +29,48 @@ ado, here goes.
 ## The Code
 
 Need these for index_sequence etc...
-
-    #include <utility>
-    #include <array>
-
+```C++
+#include <utility>
+#include <array>
+```
 The public interface takes a sequence and we will see that it returns
 a sequence. Remember that this is meta programming and really it's all
 about the types rather than the values.
-
-    template<typename Int, Int... values> constexpr auto
-    sort(std::integer_sequence<Int, values...>);
-
+```C++
+template<typename Int, Int... values> constexpr auto
+sort(std::integer_sequence<Int, values...>);
+```
 The pretty interface hides an implementation. This is defined as a
 struct. This is just syntactic sugar and saves us having to repeat
 some common declarations.
-
-    template<typename Values> struct SortImpl;
-
+```C++
+template<typename Values> struct SortImpl;
+```
 Our wrapper function passes on the sequence and calls the implementation.
-
-    template<typename Int, Int... values>
-    constexpr auto sort(std::integer_sequence<Int, values...> sequence)
-    {
-        return SortImpl<decltype(sequence)>::sort();
-    }
-
+```C++
+template<typename Int, Int... values>
+constexpr auto sort(std::integer_sequence<Int, values...> sequence)
+{
+    return SortImpl<decltype(sequence)>::sort();
+}
+```
 Now the guts. We use partial specialisation to break out the sequences
 of values and indices.
 
-    template<typename Int, Int... values>
-    struct SortImpl<std::integer_sequence<Int, values...> >
-    {
-Create an index corresponding to the positions in the sorted sequence and call an implementation.
-
-        static constexpr auto sort()
-        {
-            return sort(std::make_index_sequence<sizeof...(values)>{});
-        }
-A sorted sequence is one where the positions of the elements correspond to the ranking of the elements values. By ranking I mean the order defined by the comparision function (in this case <). In other words position 0 has element with lowest value - rank 0, position 1 has element with rank 1, etc. In general the i'th position contains the i'th ranking element. Here the index parameter pack gives us all the values of i so we can write that in C++ like this:
+```C++
+template<typename Int, Int... values>
+struct SortImpl<std::integer_sequence<Int, values...> >
+{
 ```
+Create an index corresponding to the positions in the sorted sequence and call an implementation.
+```C++
+    static constexpr auto sort()
+    {
+        return sort(std::make_index_sequence<sizeof...(values)>{});
+    }
+```
+A sorted sequence is one where the positions of the elements correspond to the ranking of the elements values. By ranking I mean the order defined by the comparision function (in this case <). In other words position 0 has element with lowest value - rank 0, position 1 has element with rank 1, etc. In general the i'th position contains the i'th ranking element. Here the index parameter pack gives us all the values of i so we can write that in C++ like this:
+```C++
     template<std::size_t... index>
     static constexpr auto sort(std::index_sequence<index...>)
     {
@@ -84,7 +87,7 @@ account the count of each value. Here I'm using a side effect within
 the pack expansion to capture the result.
 
 
-```
+```C++
     template<std::size_t i>
     static constexpr auto ith()
     {
@@ -100,26 +103,26 @@ We can define the rank of an element by counting the number of
 other elements of lesser value. Note if you we going to
 generalise the ordering function this is where you would do it.
 
-```
+```C++
     template<Int x>
     static constexpr auto rankOf() { return ((x > values) +...); }
 ```    
 The count is similar.
-```
+```C++
     template<Int x>
     static constexpr auto count() { return ((x == values) +...); }
 };
 ```
 To show that it works I'm defining equality for integer_sequences. Two
 sequences with the same values are equal.
-```
+```C++
 template<typename Int, Int... values>
 constexpr auto operator==(
     std::integer_sequence<Int, values...>, 
     std::integer_sequence<Int, values...>) { return true; }
 ```
 Sequences with different values are unequal.
-```
+```C++
 template<typename Int, Int... values, Int... others>
 constexpr auto operator==(
     std::integer_sequence<Int, values...>, 
@@ -131,7 +134,7 @@ static_assert(
     sort(std::index_sequence<3, 3, 1>{}) == std::index_sequence<1, 3, 3>{});
 ```
 As an extra check this bit of code converts a sequence to an array.
-```
+```C++
 template<typename Int, Int... values>
 constexpr auto toArray(std::integer_sequence<Int, values...>)
 {
@@ -139,7 +142,7 @@ constexpr auto toArray(std::integer_sequence<Int, values...>)
 }
 ```
 In godbolt we can see the emitted code is sorted.
-```
+```C++
 auto x = toArray(sort(std::index_sequence<3, 2, 1, 9, 42>{}));
 ```
 Is this better than the equivalent recursive definition? I think it's
