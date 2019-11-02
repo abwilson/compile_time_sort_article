@@ -61,27 +61,20 @@ of values and indices.
     struct SortImpl<std::integer_sequence<Int, values...> >
     {
 Create an index corresponding to the positions in the sorted sequence and call an implementation.
+
         static constexpr auto sort()
         {
             return sort(std::make_index_sequence<sizeof...(values)>{});
         }
-A sorted sequence is one where the positions of the elements correspond to the ranking of the elements values. By ranking I
-       mean the order defined by the comparision function (in this
-       case <). In other words position 0 has element with lowest
-       value - rank 0, position 1 has element with rank 1, etc. In
-       general the i'th position contains the i'th ranking
-       element. Here the index parameter pack gives us all the values
-       of i so we can write that in C++ like this:
-    */
+A sorted sequence is one where the positions of the elements correspond to the ranking of the elements values. By ranking I mean the order defined by the comparision function (in this case <). In other words position 0 has element with lowest value - rank 0, position 1 has element with rank 1, etc. In general the i'th position contains the i'th ranking element. Here the index parameter pack gives us all the values of i so we can write that in C++ like this:
+```
     template<std::size_t... index>
     static constexpr auto sort(std::index_sequence<index...>)
     {
         return std::integer_sequence<Int, ith<index>()...>{};
     }
-    
-    /**
-       The ith element is the value who's rank is i. We can find this
-       by looking at all the values and picking out the one with the
+```
+The ith element is the value who's rank is i. We can find this by looking at all the values and picking out the one with the
        correct rank. We have to be a little bit careful
        though. Repeated values will lead to ties in ranking. eg for
        the sequence [1, 2, 2, 3] the ranks are 1st, 2nd, 2nd, 4th. We
