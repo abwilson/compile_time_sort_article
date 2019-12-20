@@ -37,8 +37,8 @@ The public interface takes a sequence and we will see that it returns
 a sequence. Remember that this is meta programming and really it's all
 about the types rather than the values.
 ```C++
-template<typename Int, Int... values> constexpr auto
-sort(std::integer_sequence<Int, values...>);
+template<typename Int, Int... values>
+constexpr auto sort(std::integer_sequence<Int, values...>);
 ```
 The pretty interface hides an implementation. This is defined as a
 struct. This is just syntactic sugar and saves us having to repeat
