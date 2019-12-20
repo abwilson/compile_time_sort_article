@@ -189,7 +189,7 @@ using T1 = std::tuple<bool, std::int16_t, char, std::int32_t, std::int64_t>;
 static_assert(sizeof(T1) == 24, "pathalogical case std::tuple pads");
 
 using T2 = std::tuple<std::int64_t, std::int32_t, std::int16_t, bool, char>;
-static_assert(sizeof(T2) == 16, "efficient payout sorts by size");
+static_assert(sizeof(T2) == 16, "efficient layout sorts by size");
 /*
 We all know that on most architectures types have an aligment. And we
 ought to know that to get a space efficient layout we should sort our
