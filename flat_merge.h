@@ -45,7 +45,6 @@ constexpr auto empty(TypeList<Ts...>){ return std::false_type{}; }
 template<typename... Ts>
 constexpr auto size(TypeList<Ts...>){ return sizeof...(Ts); }
 
-
 template<int i>
 using Int = std::integral_constant<int, i>;
 
@@ -67,22 +66,18 @@ constexpr auto intLog2(Int x)
 template<std::size_t idx, typename T>
 using Get = std::tuple_element_t<idx, T>;
 
-template<std::size_t generation, std::size_t position>
-struct split
+template<std::size_t generation, std::size_t position, typename... Ts>
+constexpr auto split(TypeList<Ts...> tl)
 {
-    template<typename... Ts>
-    constexpr auto operator()(TypeList<Ts...> tl) const
-    {
-        using Tup = std::tuple<Ts...>;
-        constexpr auto resultSize = 1 << (generation + 1);
-        return applySequence(
-            std::make_index_sequence<resultSize>{},
-            [](auto... i)
-            {
-                return TypeList<Get<i + position * resultSize, Tup>...>{};
-            });
-    }
-};
+    using Tup = std::tuple<Ts...>;
+    constexpr auto resultSize = 1 << (generation + 1);
+    return applySequence(
+        std::make_index_sequence<resultSize>{},
+        [](auto... i)
+        {
+            return TypeList<Get<i + position * resultSize, Tup>...>{};
+        });
+}
 
 template<typename Traits, typename L, typename R, typename Result>
 struct MergeImpl
@@ -136,10 +131,21 @@ constexpr auto merge(TypeList<Ts...> ts, TypeList<Us...> us)
         [=](auto... i)
         {
             return (
-                MergeImpl{Traits{}, ts, us, TypeList<>{}} >>=
-                ... >>=
-                [=](auto f){ return f(i); }
+                MergeImpl{Traits{}, ts, us, TypeList{}} >>=
+                ... >>= [=](auto f){ return f(i); }
             ).result;
         });
 }
+
+// template<std::size_t generation>
+// struct MergeSortImpl
+// {
+//     template<typename Traits>
+//     auto operator()()
+//     {
+//         return applySequence(
+            
+//         );
+//     }
+// };
 
