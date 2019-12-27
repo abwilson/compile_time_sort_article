@@ -320,3 +320,16 @@ static_assert(checkType<3, std::int32_t >(efficientTuple));
 static_assert(checkType<4, std::int64_t >(efficientTuple));
 
 int main(){}
+
+/*
+Footnote is it Any Good?
+
+No. It's actaully astonishingly bad. Never in all my time as a
+programmer have I been able to burn so many CPU cycles on so simple a
+problem.
+
+What about mapSort. That's actually much better but is still at least
+n^2. Compared to a recursive nlog(n) algorithm mapSort is slower but
+the recursive code hits the template recursion depth limit while
+mapSort will happily keep on burning cycles.
+ */
