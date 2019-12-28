@@ -12,6 +12,9 @@ $(call exec,flat_merge)
 flat_merge_godbolt.src = flat_merge_godbolt.cpp
 $(call exec,flat_merge_godbolt)
 
+flat_qsort.src = flat_qsort.cpp
+$(call exec,flat_qsort)
+
 perf_sizes = 8 16 32 64 # 128 256 512 1024 2048 # 4096 8192 16284
 
 all: bench bench2 bench3

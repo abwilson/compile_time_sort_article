@@ -4,12 +4,12 @@ using Input = TypeList<bool, char, short, int>;
 
 static_assert(
     std::is_same<
-        decltype(split<0, 0>(Input{})),
+        decltype(split<1, 0>(Input{})),
         TypeList<bool, char> >::value, "");
 
 static_assert(
     std::is_same<
-        decltype(split<0, 1>(Input{})),
+        decltype(split<1, 1>(Input{})),
         TypeList<short, int> >::value, "");
 
 using Input2 = TypeList<
@@ -18,10 +18,10 @@ using Input2 = TypeList<
 using Input3 = TypeList<long long, long long, long long, int>;
 
 static_assert(
-    std::is_same<decltype(split<1, 0>(Input2{})), Input>::value, "");
+    std::is_same<decltype(split<2, 0>(Input2{})), Input>::value, "");
 
 static_assert(
-    std::is_same<decltype(split<1, 1>(Input2{})), Input3>::value, "");
+    std::is_same<decltype(split<2, 1>(Input2{})), Input3>::value, "");
 
 
 struct EfficientLayoutTraits
@@ -59,3 +59,9 @@ static_assert(
        TypeList<char, bool, short, short, int, int> >::value,
     "");
 
+static_assert(
+    std::is_same_v<
+    decltype(
+        splitMerge<0, EfficientLayoutTraits>(Input{})),
+    Input{}>,
+    "");

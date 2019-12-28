@@ -1,55 +1,6 @@
 #pragma once
 
-#include <utility>
-#include <functional>
-#include <type_traits>
-
-template<std::size_t... index, typename F>
-auto applySequence(std::index_sequence<index...>, F&& f)
-{
-    return f(std::integral_constant<std::size_t, index>{}...);
-}
-
-template<typename... Ts> struct TypeList {};
-
-template<typename... Lhs, typename... Rhs>
-auto operator+(TypeList<Lhs...>, TypeList<Rhs...>)
-{
-    return TypeList<Lhs..., Rhs...>{};
-}
-
-template<typename T>
-struct Tag { using type = T; };
-
-template<typename... Lhs, typename Rhs>
-constexpr auto operator+(TypeList<Lhs...>, Tag<Rhs>)
-{ return TypeList<Lhs..., Rhs>{}; }
-
-template<typename... Ts>
-constexpr auto operator==(TypeList<Ts...>, TypeList<Ts...>){ return true; }
-
-template<typename... Ts, typename... Other>
-constexpr auto operator==(TypeList<Ts...>, TypeList<Other...>){ return false; }
-
-template<typename Head, typename... Tail>
-constexpr auto head(TypeList<Head, Tail...>){ return Tag<Head>{}; }
-
-template<typename Head, typename... Tail>
-constexpr auto tail(TypeList<Head, Tail...>){ return TypeList<Tail...>{}; }
-
-constexpr auto empty(TypeList<>){ return std::true_type{}; }
-
-template<typename... Ts>
-constexpr auto empty(TypeList<Ts...>){ return std::false_type{}; }
-
-template<typename... Ts>
-constexpr auto size(TypeList<Ts...>){ return sizeof...(Ts); }
-
-template<int i>
-using Int = std::integral_constant<int, i>;
-
-template<typename A, typename F>
-auto operator>>=(A a, F f) { return f(a); }
+#include "tools.h"
 
 template<typename Int>
 constexpr auto intLog2(Int x)
@@ -70,7 +21,7 @@ template<std::size_t generation, std::size_t position, typename... Ts>
 constexpr auto split(TypeList<Ts...> tl)
 {
     using Tup = std::tuple<Ts...>;
-    constexpr auto resultSize = 1 << (generation + 1);
+    constexpr auto resultSize = 1 << generation;
     return applySequence(
         std::make_index_sequence<resultSize>{},
         [](auto... i)
@@ -137,15 +88,21 @@ constexpr auto merge(TypeList<Ts...> ts, TypeList<Us...> us)
         });
 }
 
-// template<std::size_t generation>
-// struct MergeSortImpl
-// {
-//     template<typename Traits>
-//     auto operator()()
-//     {
-//         return applySequence(
-            
-//         );
-//     }
-// };
+template<std::size_t generation, typename Traits, typename... Ts>
+auto splitMerge(TypeList<Ts...> ts)
+{
+    constexpr auto resultSize = 1 << (generation + 1);
+    const auto log2Size = intLog2(sizeof...(Ts));
+    const auto splits = 1 << (log2Size - generation - 1);
+    
+    return applySequence(
+        std::make_index_sequence<splits>{},
+        [=](auto... i)
+        {
+            return (
+                merge(
+                    split<generation, i>(ts),
+                    split<generation, i + 1>(ts)) +...);
+        });
+}
 
