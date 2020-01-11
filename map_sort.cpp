@@ -1,17 +1,19 @@
 /**
 In the previous article I described a way of doing compile time
-sorting. One of the questions that came out of this was why would you
-want to do that? Well firstly you can look at it as software poetry -
-it's just pretty for it's own sake, and I think we as programmers
-ought to be able to appreciate that even if there is no practicle
-use. Secondly the sorting algorithm illustrates the use of some
-techniques that can be applied more generally to solve other
-problems. Last but not least, there are real reasons why you'd want to
-sort at compile time and in this article I'm going to show you one.
+sorting. One of the questions that came out of this was why would
+anyone want to do that? The first answer is just for fun, it's just
+pretty for it's own sake, and I think we as programmers ought to be
+able to appreciate that even if there is no practicle use. To put it
+another way, quoting Albert Eistein, what use is a new born baby?
+Secondly, the sorting algorithm illustrates some techniques that can be
+applied more generally to solve other problems - really it's just
+playing with parameter pack expansion. Last but not least, there are
+real reasons why you'd want to sort at compile time and in this
+article I'm going to show you one.
 
 Firstly though I'm going to show another little trick, apply it to
 create yet another compile time sorting algorithm and then use that to
-solve a real problem.
+solve a practical problem.
 
 A Simple Compile Time Map
 
@@ -26,13 +28,12 @@ from all of the types) we end up with a type that is a composition of
 these. Furthermore we also know we can implicitly cast from the
 composed type to any of its bases. So given:
  */
-
 struct A {}; struct B {}; struct C {};
 auto abc = Map<A, B, C>{};
 /*
 Then I can select the A base of abc like this:
 */
-decltype(auto) getA(const A& a){ return a; }
+inline decltype(auto) getA(const A& a){ return a; }
 
 const A& a = getA(abc);
 /*
@@ -47,7 +48,8 @@ struct Pair { using type = Value; };
 Now we can write a generalised get.
 */
 template<std::size_t key, typename Value>
-decltype(auto) get(const Pair<key, Value>& result){ return result; }
+inline constexpr decltype(auto) get(const Pair<key, Value>& result)
+{ return result; }
 /*
 The crucial thing is that type deduction now comes into play. So given:
 */
@@ -60,17 +62,15 @@ I can write:
 #include <type_traits>
 
 const auto& x = get<1>(abcMap);
-static_assert(
-    std::is_same<
-        std::decay_t<decltype(x)>,
-        Pair<1, B> >{},
-    "get() pulls out the corresponding base.");
 /*
-We have constrained key, and since our keys are unique, when the
-compiler tries to deduce Value there is only one posible substitution.
-The expression is valid and x ends up bound to the Pair<1, B> base of
-abcMap.
-
+We have constrained key and, since our keys are unique, when the
+compiler tries to deduce Value there is only one posible solution,
+abcMap must be cast to const Pair<1, B>&. The expression is
+unambiguous and x ends referencing the appropriate base of abcMap.
+*/
+static_assert(std::is_same<std::decay_t<decltype(x)>, Pair<1, B> >{},
+              "get() pulls out the corresponding base.");
+/*
 We can translate this back to the world of types:
 */
 template<typename M, std::size_t key>
@@ -79,10 +79,15 @@ using Get = typename std::decay_t<
 
 static_assert(std::is_same<Get<ABCMap, 2>, C>{}, "Get works too.");
 /*
-So we have a very simple way of mapping from integers to types. (This
-is obvioulsy very similar to std::tuple - but we'll come back to
-that.) Note that the order we declare the mapping is not
-important - type deduction will still produce the correct result.
+So we have a very simple way of mapping from integers to types. The
+key doesn't have to be a non-type and it doesn't have to be an int,
+but it does have to be a compile time construct. There are other ways
+of making compile time maps but I quite like this one as it's simple
+and uses the basic rules of C++ that we all (should) understand. This
+map type is obvioulsy very similar to std::tuple - but we'll come back
+to that later. Note that the order we declare the pairs in the mapping
+is not important - type deduction will still produce the correct
+result - another MacGuffin.
 
 Another Way to Sort
 
@@ -119,12 +124,13 @@ struct MapSortImpl<std::index_sequence<index...>, Traits, Ts...>: Traits
 
     /*
       How do we find the rank of an element? Firstly we count up how
-      many other elements we rank higher than using the traits compare
+      many other elements rank lower than us using the traits compare
       function.
 
       We then consider equal ranking elements. We want a stable sort,
       so we add on the count of the equal elements preceding this
-      element in the list. This keeps equal ranking elements in order.
+      element in the list. This keeps equal ranking elements in their
+      existing order.
      */
     template<std::size_t pos, typename T>
     static constexpr auto rankOf()
@@ -135,7 +141,8 @@ struct MapSortImpl<std::index_sequence<index...>, Traits, Ts...>: Traits
         return countOfTsWithLesserValue + countOfEqualTsPrecedingInList;
     }
     /*
-      Now we can define the ranking.
+      Now we can define the ranking as a mapping from rank to T for
+      each T in Ts.
     */
     using Ranking = Map<Pair<rankOf<index, Ts>(), Ts>...>;
     /*
@@ -153,7 +160,7 @@ struct MapSortImpl<std::index_sequence<index...>, Traits, Ts...>: Traits
 Finally some syntactic sugar.
 */
 template<typename Traits, typename... Ts>
-auto mapSort(TypeList<Ts...>)
+inline constexpr auto mapSort(TypeList<Ts...>)
 {
     return MapSortImpl<std::index_sequence_for<Ts...>, Traits, Ts...>::sort();
 }
@@ -324,9 +331,9 @@ int main(){}
 /*
 Footnote is it Any Good?
 
-No. It's actaully astonishingly bad. Never in all my time as a
-programmer have I been able to burn so many CPU cycles on so simple a
-problem.
+The previous version - no. It's actaully astonishingly bad. Never in
+all my time as a programmer have I burned so many clock cycles on so
+simple a problem.
 
 What about mapSort. That's actually much better but is still at least
 n^2. Compared to a recursive nlog(n) algorithm mapSort is slower but

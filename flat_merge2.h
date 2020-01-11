@@ -2,22 +2,6 @@
 
 #include "tools.h"
 
-template<std::size_t idx, typename T>
-using Get = std::tuple_element_t<idx, T>;
-
-template<std::size_t generation, std::size_t position, typename... Ts>
-constexpr auto split(TypeList<Ts...> tl)
-{
-    using Tup = std::tuple<Ts...>;
-    constexpr auto resultSize = 1 << generation;
-    return applySequence(
-        std::make_index_sequence<resultSize>{},
-        [](auto... i)
-        {
-            return TypeList<Get<i + position * resultSize, Tup>...>{};
-        });
-}
-
 template<typename Traits, typename L, typename R, typename Result>
 struct MergeImpl
 {
@@ -62,8 +46,8 @@ struct MergeImpl
     }
 };
 
-template<typename... Ts, typename... Us>
-constexpr auto merge(TypeList<Ts...> ts, TypeList<Us...> us)
+template<typename Traits, typename... Ts, typename... Us>
+auto merge(Traits traits, TypeList<Ts...> ts, TypeList<Us...> us)
 {
     return applySequence(
         std::make_index_sequence<size(ts) + size(us)>{},
@@ -74,23 +58,52 @@ constexpr auto merge(TypeList<Ts...> ts, TypeList<Us...> us)
                 ... >>= [=](auto f){ return f(i); }
             ).result;
         });
+    
 }
 
-template<std::size_t generation, typename Traits, typename... Ts>
-auto splitMerge(TypeList<Ts...> ts)
+template<typename Traits, typename Tuple>
+struct CallMerge
 {
-    constexpr auto resultSize = 1 << (generation + 1);
-    const auto log2Size = intLog2(sizeof...(Ts));
-    const auto splits = 1 << (log2Size - generation - 1);
+    static constexpr Traits traits;
+    static constexpr Tuple tuple;
+
+    constexpr CallMerge(Traits, Tuple){}
+
+    auto operator()(int ignore) const
+    {
+        return ::CallMerge(
+            traits,
+            applySequence(
+                std::make_index_sequence<std::tuple_size_v<Tuple> / 2>{},
+                [=](auto... i)
+                {
+                    return std::make_tuple(
+                        merge(
+                            traits,
+                            std::get<i * 2>(tuple),
+                            std::get<i * 2 + 1>(tuple))...);
+            }));
+    }
+};
+
+template<typename Traits, typename Tuple>
+constexpr auto mergeSortImpl(Traits traits, Tuple t)
+{
+    constexpr auto generations = intLog2(std::tuple_size_v<Tuple>);
     
     return applySequence(
-        std::make_index_sequence<splits>{},
+        std::make_index_sequence<generations>{},
         [=](auto... i)
         {
+            CallMerge cm{traits, t};
             return (
-                merge(
-                    split<generation, i>(ts),
-                    split<generation, i + 1>(ts)) +...);
+                cm >>= ... >>= [=](auto f){ return f(i); }
+            ).tuple;
         });
 }
 
+template<typename Traits, typename... Ts>
+constexpr auto mergeSort(Traits traits, TypeList<Ts...>)
+{
+    return std::get<0>(mergeSortImpl(traits, std::tuple<TypeList<Ts>...>{}));
+}

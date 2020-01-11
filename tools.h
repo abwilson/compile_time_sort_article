@@ -77,3 +77,15 @@ using Int = std::integral_constant<int, i>;
 template<typename A, typename F>
 auto operator>>=(A a, F f) { return f(a); }
 
+template<typename Int>
+constexpr auto intLog2(Int x)
+{
+    for(int i = 0;; x >>= 1, i++)
+    {
+        if(!x)
+        {
+            return i - 1;
+        }
+    }
+}
+

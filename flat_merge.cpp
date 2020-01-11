@@ -1,3 +1,4 @@
+#if 0
 #include "flat_merge.h"
 
 using Input = TypeList<bool, char, short, int>;
@@ -65,3 +66,4 @@ static_assert(
         splitMerge<0, EfficientLayoutTraits>(Input{})),
     Input{}>,
     "");
+#endif
