@@ -68,7 +68,7 @@ compiler tries to deduce Value there is only one posible solution,
 abcMap must be cast to const Pair<1, B>&. The expression is
 unambiguous and x ends referencing the appropriate base of abcMap.
 */
-static_assert(std::is_same<std::decay_t<decltype(x)>, Pair<1, B> >{},
+static_assert(std::is_same_v<std::decay_t<decltype(x)>, Pair<1, B> >,
               "get() pulls out the corresponding base.");
 /*
 We can translate this back to the world of types with this slightly
@@ -78,7 +78,7 @@ template<typename M, std::size_t key>
 using Get = typename std::decay_t<
     decltype(get<key>(std::declval<M>()))>::type;
 
-static_assert(std::is_same<Get<ABCMap, 2>, C>{}, "Get works too.");
+static_assert(std::is_same_v<Get<ABCMap, 2>, C>, "Get works too.");
 /*
 So we have a very simple way of mapping from integers to types. The
 key doesn't have to be a non-type and it doesn't have to be an int,
@@ -189,9 +189,9 @@ using In = TypeList<Int<42>, Int<7>, Int<13>, Int<7> >;
 using Out = decltype(mapSort<Traits>(In{}));
 
 static_assert(
-    std::is_same<
+    std::is_same_v<
         Out,
-        TypeList<Int<7>, Int<7>, Int<13>, Int<42> > >{},
+        TypeList<Int<7>, Int<7>, Int<13>, Int<42> > >,
     "mapSort works!");
 
 /*
@@ -242,9 +242,7 @@ To prove this works I define the following.
 template<std::size_t key, typename T, typename Tuple>
 constexpr auto checkType(Tuple&& t)
 {
-    return std::is_same<
-        std::decay_t<decltype(get<key>(t))>,
-        T>::value;
+    return std::is_same_v<std::decay_t<decltype(get<key>(t))>, T>;
 }
 
 auto boolShort = Tuple<Field<0, bool>, Field<1, std::int16_t> >{};
@@ -323,7 +321,6 @@ auto efficientTuple = makeEfficientLayout<
 Tuple elements have been reordered to use minimum space.
  */
 static_assert(sizeof(efficientTuple) == 16, "QED");
-
 /*
 But are accessed by original declaration order.
  */
@@ -343,7 +340,12 @@ astonishingly bad. Never in all my time as a programmer have I burned
 so many clock cycles on so simple a problem.
 
 What about mapSort? That's actually much better but is still at least
-n^2. Compared to a recursive nlog(n) algorithm mapSort is slower but
-the recursive code hits the template recursion depth limit while
-mapSort will happily keep on burning cycles.
- */
+n^2. I've pulled down the code for skew_sort that comes from the Stack
+Overflow thread that started all this off
+(https://stackoverflow.com/questions/32660523/c-calculate-and-sort-vector-at-compile-time)
+to compare. The graphs show this is radically faster than both, but
+blows the compiler's maximum template recursion depth for data sets
+larger that 1024. Clearly the story is not over. Can we write a
+non-recursive sort in n log(n)? Will it be any good? Find out next
+time.
+*/
