@@ -1,6 +1,6 @@
 #include "flat_merge2.h"
 
-using Input = TypeList<bool, char, short, int>;
+using Input = TypeList<bool, char, short, int, double>;
 
 
 struct EfficientLayoutTraits
@@ -38,8 +38,11 @@ static_assert(
        TypeList<char, bool, short, short, int, int> >::value,
     "");
 
-static_assert(
-    std::is_same_v<
-        decltype(mergeSort(traits, Input{})),
-        Input>,
-    "");
+// static_assert(
+//     std::is_same_v<
+//         decltype(mergeSort(traits, Input{})),
+//         Input>,
+//     "");
+
+
+int main(){}

@@ -60,3 +60,4 @@ static_assert(
     decltype(flatQsort(traits, TypeList<Int<1>, Int<1>, Int<1>, Int<1> >{})),
     TypeList<Int<1>, Int<1>, Int<1>, Int<1> > >, "");
 
+int main(){}

@@ -71,7 +71,8 @@ unambiguous and x ends referencing the appropriate base of abcMap.
 static_assert(std::is_same<std::decay_t<decltype(x)>, Pair<1, B> >{},
               "get() pulls out the corresponding base.");
 /*
-We can translate this back to the world of types:
+We can translate this back to the world of types with this slightly
+ugly incantation:
 */
 template<typename M, std::size_t key>
 using Get = typename std::decay_t<
@@ -82,12 +83,15 @@ static_assert(std::is_same<Get<ABCMap, 2>, C>{}, "Get works too.");
 So we have a very simple way of mapping from integers to types. The
 key doesn't have to be a non-type and it doesn't have to be an int,
 but it does have to be a compile time construct. There are other ways
-of making compile time maps but I quite like this one as it's simple
+of making compile time maps but I quite like this one as it's simple,
 and uses the basic rules of C++ that we all (should) understand. This
 map type is obvioulsy very similar to std::tuple - but we'll come back
-to that later. Note that the order we declare the pairs in the mapping
-is not important - type deduction will still produce the correct
-result - another MacGuffin.
+to that later. The order we declare the pairs in the mapping is not
+important. We could have said:
+*/
+using ABCMap2 = Map<Pair<2, C>, Pair<1, B>, Pair<0, A> >;
+/*
+Type deduction will still produce the same result - another MacGuffin.
 
 Another Way to Sort
 
@@ -124,15 +128,18 @@ struct MapSortImpl<std::index_sequence<index...>, Traits, Ts...>: Traits
 
     /*
       How do we find the rank of an element? Firstly we count up how
-      many other elements rank lower than us using the traits compare
+      many other elements rank lower than it using the traits compare
       function.
 
       We then consider equal ranking elements. We want a stable sort,
       so we add on the count of the equal elements preceding this
       element in the list. This keeps equal ranking elements in their
-      existing order.
+      existing order and ensures every element has a well defined
+      place.
+      
+      Find the rank of element T which was at position pos in Ts.
      */
-    template<std::size_t pos, typename T>
+    template<typename T, std::size_t pos>
     static constexpr auto rankOf()
     {
         auto countOfTsWithLesserValue = (compare(value<Ts>(), value<T>()) +...);
@@ -144,7 +151,7 @@ struct MapSortImpl<std::index_sequence<index...>, Traits, Ts...>: Traits
       Now we can define the ranking as a mapping from rank to T for
       each T in Ts.
     */
-    using Ranking = Map<Pair<rankOf<index, Ts>(), Ts>...>;
+    using Ranking = Map<Pair<rankOf<Ts, index>(), Ts>...>;
     /*
       Can you dig it? What I'm saying here is Ranking is a map who's
       keys are the ranks (defined by rankOf()) of the corresponding
@@ -201,7 +208,7 @@ static_assert(sizeof(T2) == 16, "efficient layout sorts by size");
 We all know that on most architectures types have an aligment. And we
 ought to know that to get a space efficient layout we should sort our
 members by size, biggest to smallest. Efficient layouts make better
-use of cache and that in turn makes code go faster.
+use of cache and that makes code go faster.
 
 In many cases where we define a std::tuple we can rearrange the
 members by hand for efficiency, but sometime we might not be able to -
@@ -236,14 +243,14 @@ template<std::size_t key, typename T, typename Tuple>
 constexpr auto checkType(Tuple&& t)
 {
     return std::is_same<
-        std::decay_t<decltype(get<1>(t))>,
-        std::int16_t>::value;
+        std::decay_t<decltype(get<key>(t))>,
+        T>::value;
 }
 
 auto boolShort = Tuple<Field<0, bool>, Field<1, std::int16_t> >{};
 
 static_assert(checkType<0, bool>(boolShort), "pulls out bool");
-static_assert(checkType<1, bool>(boolShort), "pulls out short");
+static_assert(checkType<1, std::int16_t>(boolShort), "pulls out short");
 /*
 So we've defined the very barest bones of a tuple template. I leave it
 to the reader to flesh out the missing parts. The important difference
@@ -331,11 +338,11 @@ int main(){}
 /*
 Footnote is it Any Good?
 
-The previous version - no. It's actaully astonishingly bad. Never in
-all my time as a programmer have I burned so many clock cycles on so
-simple a problem.
+The sort I presented in the previous article - no. It's actaully
+astonishingly bad. Never in all my time as a programmer have I burned
+so many clock cycles on so simple a problem.
 
-What about mapSort. That's actually much better but is still at least
+What about mapSort? That's actually much better but is still at least
 n^2. Compared to a recursive nlog(n) algorithm mapSort is slower but
 the recursive code hits the template recursion depth limit while
 mapSort will happily keep on burning cycles.
